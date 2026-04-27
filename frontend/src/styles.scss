@@ -1,0 +1,176 @@
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  --bg-1: #0d1b2a;
+  --bg-2: #1b263b;
+  --bg-3: #415a77;
+  --card: rgba(255, 255, 255, 0.07);
+  --card-border: rgba(255, 255, 255, 0.18);
+  --txt: #f5f7ff;
+  --muted: #b7c0d9;
+  --accent: #24e39f;
+  --accent-2: #10b981;
+  --disabled: #8792ac;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: var(--txt);
+  background:
+    radial-gradient(1200px 500px at -15% -10%, #2e5f8f55, transparent 60%),
+    radial-gradient(1000px 500px at 120% 0%, #1e8f7a44, transparent 60%),
+    linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+  padding: 28px 16px 36px;
+}
+
+.container {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.hero h1 {
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.hero p {
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0 auto;
+  line-height: 1.45;
+}
+
+.stats {
+  margin: 16px auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.grid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.game-card {
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  background: var(--card);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-height: 220px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+}
+
+.game-card h2 {
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+}
+
+.badge {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 5px 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.badge.live {
+  background: rgba(36, 227, 159, 0.2);
+  color: #8dffd7;
+  border: 1px solid rgba(36, 227, 159, 0.5);
+}
+
+.badge.soon {
+  background: rgba(135, 146, 172, 0.2);
+  color: #c6cee0;
+  border: 1px solid rgba(135, 146, 172, 0.5);
+}
+
+.game-card p {
+  color: var(--muted);
+  line-height: 1.42;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tag {
+  font-size: 0.75rem;
+  border-radius: 8px;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #d8def0;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border: 1px solid transparent;
+}
+
+.action.play {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #042614;
+}
+
+.action.disabled {
+  color: #e3e8f8;
+  background: rgba(135, 146, 172, 0.25);
+  border-color: rgba(135, 146, 172, 0.45);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.footer {
+  margin-top: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+code {
+  color: #c8ffea;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 6px;
+}

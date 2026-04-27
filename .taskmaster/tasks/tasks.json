@@ -1,0 +1,532 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Configurar infraestrutura e projeto base NestJS",
+        "description": "Inicializar repositório NestJS para backend com TypeScript, testes, linter e estrutura modular (domain, application, infrastructure)",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "1. Criar projeto NestJS com `nest new game-session-backend`\n2. Configurar TypeScript strict mode\n3. Estruturar pastas: src/domain/, src/application/, src/infrastructure/\n4. Setup de testes (Jest) com cobertura ≥70%\n5. Configurar ESLint e Prettier\n6. Documentar estrutura no README.md",
+        "testStrategy": "Build sem erros, lint limpo, testes base passando",
+        "updatedAt": "2026-04-26T20:35:41.732Z",
+        "subtasks": []
+      },
+      {
+        "id": "2",
+        "title": "Implementar Aggregate Root GameSession (Domínio)",
+        "description": "Criar entidade core com regras de negócio: validações, transições de estado, versionamento otimista para sincronização",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "details": "Classe GameSession:\n- Propriedades: id, players[], status (WAITING|STARTED|FINISHED), version\n- Métodos: addPlayer(), startGame(), makeMove(), getState()\n- Validações: máx 4 jogadores, não entra após STARTED, versionamento obrigatório\n- Value Objects: Player(id,name,score), Move\n- Eventos de domínio: PlayerJoined, GameStarted, MoveMade\n- TDD: testes unit para todas as regras",
+        "testStrategy": "Unit tests para cada método, validações, transições de estado inválidas",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T20:35:41.745Z"
+      },
+      {
+        "id": "3",
+        "title": "Implementar Ports (Interfaces) - Repository e MessageBus",
+        "description": "Definir contratos para persistência e publicação de eventos, isolando domínio de frameworks",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "details": "Interfaces:\n- IGameSessionRepository: findById(id), save(session, expectedVersion)\n- IMessageBus: publish(event)\n- Tipos de eventos: PlayerJoinedEvent, GameStartedEvent, MoveMadeEvent\n- Exceções: VersionConflictException, SessionNotFoundException\n- Contrato claro de optimistic locking (expectedVersion validação)",
+        "testStrategy": "Interfaces bem definidas, implementáveis por adapters diferentes",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T20:35:41.749Z"
+      },
+      {
+        "id": "4",
+        "title": "Implementar Use Cases (Camada de Aplicação)",
+        "description": "Orquestração de negócio: JoinGame, StartGame, MakeMove, Reconnect - TDD",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "3"
+        ],
+        "details": "Use Cases:\n1. JoinGameUseCase: validar sessão, criar Player, adicionar\n2. StartGameUseCase: verificar mín 2 jogadores, transição STARTED\n3. MakeMoveUseCase: validar turno/regras, aplicar move\n4. ReconnectUseCase: validar playerId/sessionId, retornar snapshot completo\n- Injeção de dependência: Repository, MessageBus\n- TDD: testes de integração UC + mocks",
+        "testStrategy": "Testes de cada UC: caminho feliz, validações, exceções",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T20:35:41.752Z"
+      },
+      {
+        "id": "5",
+        "title": "Implementar InMemory Repository (Adaptador)",
+        "description": "Persistência em memória (MVP local) com versionamento otimista",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "3"
+        ],
+        "details": "InMemoryGameSessionRepository:\n- Map<sessionId, {session, version}>\n- save() valida expectedVersion, lança VersionConflictException\n- findById() retorna session ou null\n- getAll() para testes\n- Totalmente em RAM, sem dependências externas",
+        "testStrategy": "Testes de concorrência simples, versionamento, VersionConflictException",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T20:36:00.788Z"
+      },
+      {
+        "id": "6",
+        "title": "Implementar In-Memory MessageBus (Adaptador)",
+        "description": "Publicação de eventos para subscribers (fase 1, antes de Redis/NATS)",
+        "status": "done",
+        "priority": "medium",
+        "dependencies": [
+          "3"
+        ],
+        "details": "InMemoryMessageBus:\n- Array de subscribers registrados\n- publish() executa todos os handlers de um evento\n- Suportar múltiplos handlers por tipo\n- Logging simples (console.log MVP)\n- Preparar para: Redis pub/sub, NATS (fase 2)",
+        "testStrategy": "Handlers chamados corretamente, ordem preservada",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T23:50:00.000Z"
+      },
+      {
+        "id": "7",
+        "title": "Implementar WebSocket Gateway (NestJS + Socket.io)",
+        "description": "Camada de comunicação real-time entre server e clientes",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "4",
+          "5",
+          "6",
+          "15",
+          "16"
+        ],
+        "details": "@WebSocketGateway:\n- Listeners: JOIN_GAME, LEAVE_GAME, START_GAME, MAKE_MOVE, RECONNECT\n- Cada evento chama UC correspondente\n- Broadcasts: STATE_SYNC após mudança, PLAYER_JOINED, GAME_STARTED, MOVE_APPLIED\n- Mapa {playerId -> socketId} para reconexão\n- Error handling com EVENT_ERROR\n- Session management com connectionId transiente",
+        "testStrategy": "Testes de integração: WebSocket simulation, broadcasts verificados",
+        "subtasks": [],
+        "updatedAt": "2026-04-27T01:11:17.006Z"
+      },
+      {
+        "id": "8",
+        "title": "Implementar Reconexão (Fluxo Crítico)",
+        "description": "Permitir cliente reconectar sem perder estado - requisito MVP de ≥90% sucesso",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "7"
+        ],
+        "details": "Fluxo Reconnect:\n1. Client: RECONNECT {sessionId, playerId}\n2. Server: validar identidade (playerId na session)\n3. Server: retornar STATE_SYNC com snapshot completo\n4. Server: atualizar connectionId, broadcast PLAYER_RECONNECTED\n5. Timeout: 30s sem reconectar = desconectar\n6. Server-authoritative: nunca aceitar estado do cliente",
+        "testStrategy": "Simular desconexão/reconexão, estado consistente, timeout, broadcast",
+        "subtasks": [],
+        "updatedAt": "2026-04-27T01:12:16.260Z"
+      },
+      {
+        "id": "11",
+        "title": "Teste de Carga e Métricas MVP (2-3 clientes)",
+        "description": "Validar requisitos: ≥95% consistência, ≥90% reconexão, <150ms latência",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "19",
+          "20"
+        ],
+        "details": "Teste com 3 abas/dispositivos:\n1. Medir latência: send → recv → broadcast → client (~150ms)\n2. Verificar desync: todos veem mesmo estado?\n3. Simular desconexão (kill tab), medir reconexão\n4. Memory leak monitoring: GameSession/Repository\n5. Documentar resultados vs. métricas\n6. Logs estruturados (JSON) de eventos",
+        "testStrategy": "Teste manual multi-cliente, métricas coletadas, logs analisados",
+        "subtasks": [],
+        "updatedAt": "2026-04-27T01:10:29.403Z"
+      },
+      {
+        "id": "12",
+        "title": "Documentação, Roadmap e Deploy MVP",
+        "description": "Finalizar MVP: docs, setup, definição de pronto (DoD), roadmap fase 2",
+        "status": "done",
+        "priority": "medium",
+        "dependencies": [
+          "11"
+        ],
+        "details": "Entregáveis:\n1. README: rodar backend/frontend, testes\n2. Decisões arquiteturais: Clean Arch, server-authoritative, versionamento\n3. Guia de extensão: adicionar novo jogo\n4. Verificar DoD: testes ≥70%, sessão estável ≥2 jogadores, reconexão funcional\n5. Roadmap fase 2: PostgreSQL, Redis, Kafka\n6. Opcional: docker-compose",
+        "testStrategy": "Build/start funcionam, instruções claras, docs linkáveis",
+        "subtasks": [],
+        "updatedAt": "2026-04-27T01:13:40.161Z"
+      },
+      {
+        "id": "13",
+        "title": "Definir port IGameRules e GameRulesRegistry",
+        "description": "Criar interface IGameRules<TState, TMove> em domain/ports/IGameRules.ts com métodos getInitialState, applyMove, isGameOver, getValidMoves, getWinner. Implementar GameRulesRegistry NestJS que resolve gameType -> IGameRules. Suporta Strategy Pattern para múltiplos jogos.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "4"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T20:54:51.411Z"
+      },
+      {
+        "id": "14",
+        "title": "Refatorar GameSession para gameType e gameState",
+        "description": "Adaptar Aggregate Root GameSession para guardar gameType (string discriminador: snake|war-light) e gameState (opaque, gerenciado pelo IGameRules). applyMove delega para o IGameRules correspondente via Registry. Atualizar testes e garantir compatibilidade com use cases existentes.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "13"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T21:02:19.598Z"
+      },
+      {
+        "id": "15",
+        "title": "Implementar SnakeGameRules (server-authoritative)",
+        "description": "Implementar IGameRules para Snake. State: cobras por jogador (pos, direção, vivo), comida, grid 20x20. Tick loop a 10-15Hz no servidor. Lógica baseada em snake_gamer/games/snake/index.html: colisão com paredes, com cobras, captura de comida, crescimento. applyMove recebe nova direção. isGameOver quando todas as cobras menos uma morrem.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "14"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T23:30:41.236Z"
+      },
+      {
+        "id": "16",
+        "title": "Implementar WarLightGameRules",
+        "description": "Implementar IGameRules para War-Light. State: 18 territórios com (id, owner, troops), fase (distribution|reinforcement|attack|ended), currentPlayerIndex, availableReinforcements. Constantes TERRITORIES e ADJACENCIES copiadas de snake_gamer/games/war-light/game.js (linhas 1-39). applyMove suporta DISTRIBUTE, REINFORCE, ATTACK, END_TURN. Combate por dados (atacante até 3, defensor até 2). Reforços = max(3, floor(territoriesOwned/3)). Sem CPU (fase 2).",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "14"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-04-26T23:34:38.350Z"
+      },
+      {
+        "id": "17",
+        "title": "Bootstrap projeto Angular SPA",
+        "description": "Criar projeto frontend/ com Angular 18+ strict mode. Configurar roteamento, layout do hub (substitui index.html vanilla), TypeScript strict, ESLint. Sem lógica de jogo ainda — apenas estrutura, navegação para /games/snake e /games/war-light, e estilos compartilhados (CSS variables como no hub atual). Aposenta scripts/game-catalog.js.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Inicialização do Projeto Angular 18+ em modo Estrito",
+            "description": "Criar a estrutura base do frontend utilizando Angular CLI com as flags de modo estrito e roteamento.",
+            "dependencies": [],
+            "details": "Executar 'ng new frontend --strict --routing --style=scss' no diretório raiz. Garantir que o standalone components seja a opção padrão e que o TypeScript esteja configurado com strict: true no tsconfig.json.",
+            "status": "done",
+            "testStrategy": "Verificar se a aplicação inicia com 'ng serve' e se não há erros de tipagem no build inicial.",
+            "updatedAt": "2026-04-27T00:46:13.784Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Migração de Estilos Globais e Variáveis CSS",
+            "description": "Configurar o sistema de design baseado no hub vanilla anterior, utilizando CSS Variables e Glassmorphism.",
+            "dependencies": [
+              1
+            ],
+            "details": "Transferir as definições de cores, espaçamentos e efeitos do index.html antigo para o arquivo src/styles.scss. Definir variáveis globais no seletor :root para manter a consistência visual com o protótipo original.",
+            "status": "done",
+            "testStrategy": "Inspecionar o navegador para garantir que as CSS variables estão sendo aplicadas corretamente ao body e elementos raiz.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:46:43.693Z"
+          },
+          {
+            "id": 3,
+            "title": "Configuração de Roteamento e Placeholders de Componentes",
+            "description": "Configurar o router-outlet e criar componentes básicos para as rotas do hub e dos jogos.",
+            "dependencies": [
+              1
+            ],
+            "details": "Gerar os componentes LobbyComponent, SnakeComponent e WarLightComponent. Configurar o arquivo app.routes.ts com as rotas para '', '/games/snake' e '/games/war-light'.",
+            "status": "done",
+            "testStrategy": "Navegar manualmente pelas URLs no browser e verificar se o conteúdo de cada componente placeholder é exibido.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:47:54.961Z"
+          },
+          {
+            "id": 4,
+            "title": "Implementação do Layout do Hub (Componente Lobby)",
+            "description": "Recriar a interface de catálogo de jogos dentro do LobbyComponent, utilizando o roteamento do Angular.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Migrar o HTML estrutural do hub vanilla para o template do LobbyComponent. Substituir links <a> por diretivas routerLink. Implementar a lógica que estava no game-catalog.js de forma declarativa no template do Angular.",
+            "status": "done",
+            "testStrategy": "Validar se os cards de jogos aparecem corretamente e se o clique redireciona para a rota correta sem recarregar a página.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:48:34.299Z"
+          },
+          {
+            "id": 5,
+            "title": "Remoção de Arquivos Legados e Ajustes de ESLint",
+            "description": "Deletar os scripts e HTMLs vanilla obsoletos e configurar as regras de linting do projeto.",
+            "dependencies": [
+              4
+            ],
+            "details": "Remover o arquivo scripts/game-catalog.js e o index.html da raiz (se houver). Configurar o ESLint com o plugin de Angular para garantir conformidade com as boas práticas de desenvolvimento (strict mode).",
+            "status": "done",
+            "testStrategy": "Executar 'ng lint' e garantir que o projeto passa em todas as regras sem avisos ou erros.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:50:17.770Z"
+          }
+        ],
+        "updatedAt": "2026-04-27T00:50:17.770Z"
+      },
+      {
+        "id": "18",
+        "title": "Cliente WebSocket Angular e Lobby",
+        "description": "Implementar WebSocketService (socket.io-client) genérico que envia/recebe eventos JOIN_GAME (com gameType), START_GAME, MAKE_MOVE, RECONNECT, LEAVE_GAME e ouve STATE_SYNC, MOVE_APPLIED, etc. SessionService gerencia identidade local (playerId, sessionId em localStorage). LobbyComponent permite criar/entrar sessão escolhendo o jogo. Estados: LOBBY, WAITING, PLAYING, RECONNECTING.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "5",
+          "17"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configuração do SessionService e Persistência de Identidade",
+            "description": "Criar serviço para gerenciar a identidade do jogador e persistência no localStorage do navegador.",
+            "dependencies": [],
+            "details": "Implementar métodos para gerar ou recuperar playerId e sessionId únicos. Esses dados devem ser armazenados no localStorage para garantir que o jogador mantenha sua identidade entre sessões e recarregamentos de página.",
+            "status": "done",
+            "testStrategy": "Testes unitários para validar se os IDs são persistidos corretamente no localStorage e recuperados no bootstrapping da aplicação.",
+            "updatedAt": "2026-04-27T00:53:23.303Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implementação do WebSocketService com Socket.io-client",
+            "description": "Desenvolver o serviço Angular central para comunicação em tempo real via WebSockets.",
+            "dependencies": [
+              1
+            ],
+            "details": "Instalar socket.io-client e configurar a conexão com o backend NestJS. Implementar métodos genéricos para emitir eventos (JOIN_GAME, START_GAME, MAKE_MOVE, LEAVE_GAME) e expor Observables para escutar eventos (STATE_SYNC, MOVE_APPLIED, EVENT_ERROR).",
+            "status": "done",
+            "testStrategy": "Utilizar mocks do socket.io-client em testes de unidade para verificar a correta emissão e recepção de mensagens tipadas.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:56:40.082Z"
+          },
+          {
+            "id": 3,
+            "title": "Criação do LobbyComponent e Interface de Seleção",
+            "description": "Desenvolver a interface de usuário para escolha de jogos e gerenciamento de entrada em salas.",
+            "dependencies": [
+              2
+            ],
+            "details": "Criar o componente visual que permite ao usuário escolher entre Snake e War-Light. O componente deve disparar o evento JOIN_GAME com o gameType selecionado e exibir o estado de espera (WAITING) enquanto aguarda outros jogadores.",
+            "status": "done",
+            "testStrategy": "Teste de integração de componente simulando o clique em botões de seleção de jogo e verificando a chamada dos métodos do WebSocketService.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:57:24.229Z"
+          },
+          {
+            "id": 4,
+            "title": "Máquina de Estados do Frontend e Roteamento Dinâmico",
+            "description": "Gerenciar as transições entre os estados LOBBY, WAITING, PLAYING e RECONNECTING no lado do cliente.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implementar lógica baseada em um BehaviorSubject centralizado para controlar a visualização atual. Ao receber GAME_STARTED do servidor, o estado deve mudar para PLAYING, ocultando o lobby e carregando o container de jogo apropriado.",
+            "status": "done",
+            "testStrategy": "Verificar via Redux DevTools (se aplicável) ou logs de estado se as transições ocorrem corretamente ao receber mensagens simuladas do servidor.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T00:59:02.362Z"
+          },
+          {
+            "id": 5,
+            "title": "Lógica de Reconexão e Sincronização de Estado",
+            "description": "Implementar fluxo de recuperação de sessão para jogadores que perderam a conexão.",
+            "dependencies": [
+              1,
+              2,
+              4
+            ],
+            "details": "No ciclo de vida inicial do serviço, verificar se existe um sessionId válido. Em caso positivo, enviar o evento RECONNECT. Tratar o retorno STATE_SYNC para restaurar imediatamente o estado do jogo e a posição do jogador no fluxo da partida.",
+            "status": "done",
+            "testStrategy": "Simular desconexão forçada do navegador e verificar se o evento de RECONNECT é disparado automaticamente ao restaurar a internet, seguido da atualização da UI pelo STATE_SYNC.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:00:16.942Z"
+          }
+        ],
+        "updatedAt": "2026-04-27T01:00:16.942Z"
+      },
+      {
+        "id": "19",
+        "title": "War-Light multiplayer Angular component",
+        "description": "Implementar componente Angular para War-Light. Mapa SVG ou divs absolutas com 18 territórios posicionados via xPct/yPct (referência: snake_gamer/games/war-light). Linhas de adjacência via SVG. Status bar mostrando fase, jogador atual, tropas por territorio. Animação de combate (dados rolando). Botões de fim de turno. Recebe gameState via STATE_SYNC e envia MAKE_MOVE (DISTRIBUTE/REINFORCE/ATTACK/END_TURN).",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "18"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Estrutura do Componente e Modelagem de Dados",
+            "description": "Gerar o componente WarLightComponent e definir as interfaces de estado baseadas na lógica de negócio do backend.",
+            "dependencies": [],
+            "details": "Criar as interfaces 'WarLightState', 'Territory' e 'Phase' no frontend para espelhar o WarLightGameRules. Configurar a rota no AppRoutingModule.",
+            "status": "done",
+            "testStrategy": "Verificar se o componente renderiza em /games/war-light e se as interfaces TypeScript não possuem erros de compilação.",
+            "updatedAt": "2026-04-27T01:01:55.411Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Renderização do Mapa e Adjacências via SVG",
+            "description": "Implementar a visualização dos 18 territórios e as linhas de conexão usando coordenadas percentuais (xPct/yPct).",
+            "dependencies": [
+              1
+            ],
+            "details": "Utilizar as constantes de posição (18 territórios) para posicionar divs com 'position: absolute' e desenhar linhas SVG para adjacências entre territórios vizinhos.",
+            "status": "done",
+            "testStrategy": "Validar visualmente se todos os 18 territórios estão posicionados corretamente e se as linhas conectam os vizinhos conforme a lógica original.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:03:00.318Z"
+          },
+          {
+            "id": 3,
+            "title": "Sincronização de Estado via WebSocketService",
+            "description": "Implementar a escuta do evento STATE_SYNC para atualizar o mapa em tempo real conforme as mudanças no backend.",
+            "dependencies": [
+              2
+            ],
+            "details": "Injetar o WebSocketService no componente, subscrever aos eventos de atualização e mapear as tropas e proprietários de cada território para as cores corretas na UI.",
+            "status": "done",
+            "testStrategy": "Simular o recebimento de um payload STATE_SYNC e verificar se o número de tropas e as cores dos territórios mudam na interface.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:03:04.300Z"
+          },
+          {
+            "id": 4,
+            "title": "Lógica de Interação e Envio de Movimentos",
+            "description": "Implementar a lógica de clique para selecionar territórios e enviar as ações DISTRIBUTE, REINFORCE e ATTACK.",
+            "dependencies": [
+              3
+            ],
+            "details": "Criar handlers de clique. Se for fase de ataque, permitir selecionar origem (do jogador) e destino (adjacente). Chamar o método makeMove do serviço para emitir os eventos.",
+            "status": "done",
+            "testStrategy": "Verificar se as mensagens MAKE_MOVE estão sendo enviadas pelo socket com o payload correto (type, fromId, toId, amount).",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:03:31.440Z"
+          },
+          {
+            "id": 5,
+            "title": "Status Bar, Botões de Turno e Feedback de Combate",
+            "description": "Adicionar interface de controle para finalizar turnos e exibir informações de jogo e animações de dados.",
+            "dependencies": [
+              4
+            ],
+            "details": "Criar a barra superior com fase atual e tropas disponíveis. Implementar o botão 'End Turn'. Adicionar feedback visual (overlay ou log) para o resultado dos dados de combate.",
+            "status": "done",
+            "testStrategy": "Testar o fluxo completo de um turno: distribuir, reforçar, atacar e clicar em 'End Turn' para passar a vez.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:03:31.454Z"
+          }
+        ],
+        "updatedAt": "2026-04-27T01:03:31.454Z"
+      },
+      {
+        "id": "20",
+        "title": "Snake multiplayer Angular component",
+        "description": "Implementar componente Angular para Snake multiplayer. Canvas 2D 600x600, recebe gameState via STATE_SYNC do backend (cobras, comida, status). Envia MAKE_MOVE com nova direção (UP/DOWN/LEFT/RIGHT). Visual baseado em snake_gamer/games/snake/index.html: glassmorphism, scoreboard, controles teclado (setas + WASD para player 2), D-pad mobile + swipe. Game over overlay.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "18"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Criação do componente Snake e layout base",
+            "description": "Gerar o componente Angular para o jogo Snake e configurar a estrutura HTML/CSS com o Canvas 2D de 600x600 e estilos glassmorphism.",
+            "dependencies": [],
+            "details": "Criar SnakeComponent em frontend/src/app/games/snake. Definir template com um elemento canvas de 600x600. Aplicar CSS com variáveis de cor e efeitos de glassmorphism baseados no hub original para containers de scoreboard e controles.",
+            "status": "done",
+            "testStrategy": "Verificar se o componente é carregado via roteamento e se o canvas de 600x600 está visível no DOM com o estilo esperado.",
+            "updatedAt": "2026-04-27T01:04:53.334Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Integração com WebSocketService e renderização do estado",
+            "description": "Implementar a escuta do evento STATE_SYNC via WebSocketService e desenhar as cobras e comida no Canvas 2D.",
+            "dependencies": [
+              1
+            ],
+            "details": "Injetar WebSocketService. No evento STATE_SYNC, converter as coordenadas do grid para pixels (proporcional ao canvas). Implementar um loop de renderização que limpa o canvas e desenha as cobras dos jogadores e as comidas recebidas no estado.",
+            "status": "done",
+            "testStrategy": "Simular a recepção de um pacote STATE_SYNC via mock e validar se os elementos são desenhados corretamente nas coordenadas especificadas no canvas.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:04:53.342Z"
+          },
+          {
+            "id": 3,
+            "title": "Implementação de controles de entrada (Teclado e Mobile)",
+            "description": "Capturar entradas do usuário através do teclado (Setas e WASD), gestos de swipe e botões D-pad para enviar comandos MAKE_MOVE.",
+            "dependencies": [
+              2
+            ],
+            "details": "Adicionar HostListeners para eventos de teclado. Implementar detecção de swipe (TouchStart/TouchEnd) e criar um D-pad visual para mobile. Mapear inputs para direções (UP/DOWN/LEFT/RIGHT) e disparar o método makeMove do WebSocketService.",
+            "status": "done",
+            "testStrategy": "Monitorar as mensagens enviadas pelo WebSocket no console do navegador ao pressionar as teclas ou interagir com os controles touch.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:04:53.350Z"
+          },
+          {
+            "id": 4,
+            "title": "Scoreboard dinâmico e UI de Status",
+            "description": "Criar painéis informativos para exibir a pontuação em tempo real de todos os jogadores e o estado atual da conexão.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Vincular os dados dos jogadores recebidos no gameState ao scoreboard. Exibir cores correspondentes para cada jogador e destacar o 'Local Player'. Mostrar indicadores de status como 'Esperando jogadores' ou 'Partida em curso'.",
+            "status": "done",
+            "testStrategy": "Validar se os nomes e pontuações no scoreboard são atualizados conforme o estado do jogo muda no payload do socket.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:04:53.355Z"
+          },
+          {
+            "id": 5,
+            "title": "Overlay de Fim de Jogo e Fluxo de Saída",
+            "description": "Implementar o overlay de Game Over com resumo da partida e funcionalidade para retornar ao lobby ou reiniciar.",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "Criar um modal absoluto sobre o canvas que é ativado quando o status do jogo for 'FINISHED' ou o jogador local morrer. Adicionar botão de 'Voltar ao Lobby' que invoca o método leaveGame do SessionService.",
+            "status": "done",
+            "testStrategy": "Simular fim de jogo no estado recebido e verificar se o overlay aparece corretamente, impedindo inputs de movimento e permitindo a navegação de volta ao lobby.",
+            "parentId": "undefined",
+            "updatedAt": "2026-04-27T01:04:53.361Z"
+          }
+        ],
+        "updatedAt": "2026-04-27T01:04:53.361Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-04-27T01:13:40.162Z",
+      "taskCount": 18,
+      "completedCount": 18,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}

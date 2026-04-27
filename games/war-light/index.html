@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAR Light - Prototipo</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="top-nav">
+    <a class="menu-link" href="../../index.html">Voltar ao Menu</a>
+  </div>
+
+  <header>
+    <h1>WAR LIGHT</h1>
+    <p class="subtitle">Protótipo inspirado no tabuleiro clássico - conquiste territórios e domine o mapa.</p>
+  </header>
+
+  <div class="status-bar" id="statusBar">
+    <!-- preenchido dinamicamente pelo JS -->
+  </div>
+
+  <div class="game-container">
+    <div class="map-container">
+      <div class="map-title">Mapa Mundial - Frentes de Batalha</div>
+      <div id="gameMap">
+      </div>
+      <p class="hint">
+        Clique nos territórios para distribuir, reforçar e atacar. Ataque apenas territórios inimigos adjacentes.
+      </p>
+    </div>
+
+    <div class="controls-container">
+      <div class="panel">
+        <h2>MODO DE JOGO</h2>
+        <div class="mode-row">
+          <label for="gameModeSelect">Modo</label>
+          <select id="gameModeSelect">
+            <option value="pvp2">2 Jogadores</option>
+            <option value="pvp3">3 Jogadores</option>
+            <option value="pvp4">4 Jogadores</option>
+            <option value="pvc1" selected>1 Jogador vs 1 PC</option>
+            <option value="pvc2">1 Jogador vs 2 PCs</option>
+            <option value="pvc3">1 Jogador vs 3 PCs</option>
+          </select>
+        </div>
+        <div class="mode-row">
+          <label for="cpuLevelSelect">Dificuldade</label>
+          <select id="cpuLevelSelect">
+            <option value="easy">Fácil</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Difícil</option>
+          </select>
+        </div>
+        <button class="button secondary" id="newGameBtn">↺ Novo Jogo</button>
+      </div>
+
+      <div class="panel">
+        <h2>AÇÕES DO TURNO</h2>
+        <p id="actionDescription">Clique em um território neutro para distribuí-lo (distribuição alternada).</p>
+
+        <div id="reinforceSection" style="display:none; margin-top:6px;">
+          <p style="font-size:0.85rem; margin-bottom:4px;">
+            Reforços disponíveis: <strong><span id="availableReinforcements">3</span></strong>
+          </p>
+          <button class="button" id="addTroopBtn">+ Adicionar Tropa</button>
+        </div>
+
+        <div id="attackSection" style="display:none; margin-top:6px;">
+          <p style="font-size:0.85rem; margin-bottom:4px;">
+            Selecione um território seu (com >1 tropa) e depois um inimigo adjacente.
+          </p>
+          <div class="dice-result" id="diceResult" style="display:none;"></div>
+          <button class="button secondary" id="attackBtn" disabled>⚔ Atacar</button>
+        </div>
+
+        <button class="button danger" id="endTurnBtn" disabled>⏭ Encerrar Turno</button>
+      </div>
+
+      <div class="panel">
+        <h2>REGRAS RESUMIDAS</h2>
+        <ul style="padding-left:18px; line-height:1.5; font-size:0.82rem; color:#e5e7eb;">
+          <li>Objetivo: conquistar todos os territórios do mapa.</li>
+          <li>Distribuição inicial: jogadores escolhem territórios neutros alternadamente.</li>
+          <li>Reforços por turno: mínimo 3, ou ~1 a cada 3 territórios.</li>
+          <li>Ataque: só se tiver >= 2 tropas no território atacante.</li>
+          <li>Dados: atacante até 3 dados; defensor até 2. Compara do maior para o menor.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h2>LOG DO JOGO</h2>
+        <div class="log" id="gameLog">
+          <div class="log-entry system">[--] Bem-vindo ao WAR Light! Jogador 1 inicia a distribuição.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./game.js" defer></script>
+</body>
+</html>
+

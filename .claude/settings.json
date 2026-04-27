@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(task-master list *)",
+      "Bash(task-master show *)",
+      "Bash(task-master set-status *)",
+      "Bash(npm test *)",
+      "Bash(npx jest *)",
+      "Bash(xargs ls *)",
+      "Bash(git -C \"c:\\\\Users\\\\lcmsc\\\\workspace\\\\game-session-engine\" status)",
+      "Bash(git -C \"c:\\\\Users\\\\lcmsc\\\\workspace\\\\game-session-engine\" diff --stat HEAD)",
+      "Bash(git -C \"c:\\\\Users\\\\lcmsc\\\\workspace\\\\game-session-engine\" log --oneline -5)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "taskmaster-ai"
+  ]
+}

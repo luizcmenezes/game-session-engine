@@ -1,0 +1,28 @@
+# Game Session Engine - PRD
+
+## Overview
+Game Session Engine é um hub centralizado para acessar múltiplos jogos web. A arquitetura é simples e escalável: cada jogo vive em sua própria pasta dentro de `/games`, e um catálogo central gerencia a descoberta e exibição de todos os jogos.
+
+## Current Games
+- Snake: Jogo clássico com modos 1-2 jogadores, canvas-based, suporte mobile
+- War Light: Jogo estratégico por turnos com 18 territórios, sistema de combate com dados
+
+## Architecture
+- Entry Point: index.html (hub central com grid responsivo)
+- Game Catalog: scripts/game-catalog.js (gerencia descoberta e exibição)
+- Game Structure: Cada jogo em /games/nome-do-jogo/ com index.html próprio
+- No external dependencies - Vanilla HTML/CSS/JS
+
+## Key Features
+- Responsive design with CSS Grid
+- Local storage for game saves/scores
+- SVG and Canvas support for different game types
+- Mobile-friendly interface
+- Back navigation from games to hub
+
+## Development Priorities
+1. Maintain clean architecture for game isolation
+2. Ensure responsive design works on all devices
+3. Support both canvas-based and DOM-based games
+4. Keep games performant without external dependencies
+5. Provide consistent UI/UX across the hub and games
