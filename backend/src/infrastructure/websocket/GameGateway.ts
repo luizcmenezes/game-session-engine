@@ -88,24 +88,27 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('EVENT_ERROR', { message: error.message });
     }
   }
-
-  @SubscribeMessage('MAKE_MOVE')
-  async handleMove(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { sessionId: string; playerId: string; move: any },
-  ) {
-    try {
-      const result = await this.makeMoveUseCase.execute(data);
-      this.server.to(data.sessionId).emit('MOVE_APPLIED', { 
-        playerId: data.playerId, 
-        move: data.move,
-        newState: result.state 
-      });
-      this.server.to(data.sessionId).emit('STATE_SYNC', result.state);
-    } catch (error) {
-      client.emit('EVENT_ERROR', { message: error.message });
-    }
+@SubscribeMessage('MAKE_MOVE')
+async handleMove(
+  @ConnectedSocket() client: Socket,
+  @MessageBody() data: { sessionId: string; playerId: string; move: any },
+) {
+  try {
+    const result = await this.makeMoveUseCase.execute({
+      sessionId: data.sessionId,
+      playerId: data.playerId,
+      data: data.move
+    });
+    this.server.to(data.sessionId).emit('MOVE_APPLIED', { 
+      playerId: data.playerId, 
+      move: data.move,
+      newState: result.state 
+    });
+    this.server.to(data.sessionId).emit('STATE_SYNC', result.state);
+  } catch (error) {
+    client.emit('EVENT_ERROR', { message: error.message });
   }
+}
 
   @SubscribeMessage('RECONNECT')
   async handleReconnect(
