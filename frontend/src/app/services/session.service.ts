@@ -1,6 +1,13 @@
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
+function generateUUID(): string {
+  if (typeof crypto.randomUUID === 'function') return generateUUID();
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -21,7 +28,7 @@ export class SessionService {
   private init(): void {
     this.playerId = localStorage.getItem(this.PLAYER_ID_KEY);
     if (!this.playerId) {
-      this.playerId = crypto.randomUUID();
+      this.playerId = generateUUID();
       localStorage.setItem(this.PLAYER_ID_KEY, this.playerId);
     }
 
@@ -30,7 +37,7 @@ export class SessionService {
 
   getPlayerId(): string {
     if (!this.playerId) {
-      this.playerId = crypto.randomUUID();
+      this.playerId = generateUUID();
       if (isPlatformBrowser(this.platformId)) {
         localStorage.setItem(this.PLAYER_ID_KEY, this.playerId);
       }

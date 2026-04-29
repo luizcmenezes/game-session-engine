@@ -9,13 +9,14 @@ import { SessionService } from './session.service';
 export class WebSocketService implements OnDestroy {
   private sessionService = inject(SessionService);
   private socket: Socket;
-  private readonly url = 'http://localhost:3000/game'; 
+  private readonly url = `http://${window.location.hostname}:3000/game`;
 
   private stateSyncSubject = new Subject<unknown>();
   private moveAppliedSubject = new Subject<unknown>();
   private errorSubject = new Subject<unknown>();
   private gameStartedSubject = new Subject<unknown>();
   private playerJoinedSubject = new Subject<unknown>();
+  private connectErrorSubject = new Subject<unknown>();
 
   constructor() {
     this.socket = io(this.url, {
@@ -40,6 +41,8 @@ export class WebSocketService implements OnDestroy {
     this.socket.on('disconnect', () => {
       console.log('Disconnected from WebSocket server');
     });
+
+    this.socket.on('connect_error', (err: unknown) => this.connectErrorSubject.next(err));
   }
 
   connect(): void {
@@ -79,6 +82,7 @@ export class WebSocketService implements OnDestroy {
   getErrors(): Observable<unknown> { return this.errorSubject.asObservable(); }
   getGameStarted(): Observable<unknown> { return this.gameStartedSubject.asObservable(); }
   getPlayerJoined(): Observable<unknown> { return this.playerJoinedSubject.asObservable(); }
+  getConnectError(): Observable<unknown> { return this.connectErrorSubject.asObservable(); }
 
   ngOnDestroy(): void {
     this.disconnect();

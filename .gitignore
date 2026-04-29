@@ -49,13 +49,6 @@ desktop.ini
 *.sln
 *.sw?
 
-logs
-# Dependency directories
-# Environment variables
-# Editor directories and files
-.idea
-.vscode
-
 # Task files
 # tasks.json
-# tasks/ 
+# tasks/

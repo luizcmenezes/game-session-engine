@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { WebSocketService } from './services/web-socket.service';
 import { SessionService } from './services/session.service';
-import { GameStateService } from './services/game-state.service';
+import { AppState, GameStateService } from './services/game-state.service';
 
 @Component({
   selector: 'app-root',
@@ -25,11 +25,23 @@ export class AppComponent implements OnInit {
       this.gameStateService.setReconnecting();
       this.webSocketService.connect();
       this.webSocketService.reconnect(sessionId);
-      
-      this.webSocketService.getStateSync().subscribe(() => {
-        if (this.gameStateService.getCurrentState() === 'RECONNECTING') {
-           console.log('State synced after reconnection');
+
+      const fallbackToLobby = () => {
+        if (this.gameStateService.getCurrentState() === AppState.RECONNECTING) {
+          this.gameStateService.setLobby();
         }
+      };
+
+      const timeout = setTimeout(fallbackToLobby, 5000);
+
+      this.webSocketService.getConnectError().subscribe(() => {
+        clearTimeout(timeout);
+        fallbackToLobby();
+      });
+
+      this.webSocketService.getStateSync().subscribe(() => {
+        clearTimeout(timeout);
+        console.log('State synced after reconnection');
       });
     }
   }

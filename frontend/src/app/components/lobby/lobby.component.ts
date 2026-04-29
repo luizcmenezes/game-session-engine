@@ -27,7 +27,8 @@ interface Game {
         <p>Menu central para acessar todos os jogos do projeto.</p>
       </header>
 
-      @if ((state$ | async) === AppState.LOBBY) {
+      @let state = (state$ | async);
+      @if (state === AppState.LOBBY) {
         <div class="session-form card">
           <h3>Configuração de Sessão</h3>
           <div class="form-group">
@@ -69,12 +70,19 @@ interface Game {
             </article>
           }
         </section>
-      } @else if ((state$ | async) === AppState.WAITING) {
+      } @else if (state === AppState.WAITING) {
         <div class="waiting-screen card">
           <h2>Aguardando outros jogadores...</h2>
           <p>Sessão ID: <code>{{ currentSessionId }}</code></p>
           <div class="loader"></div>
           <button class="action disabled" (click)="cancel()">Cancelar</button>
+        </div>
+      } @else if (state === AppState.RECONNECTING) {
+        <div class="waiting-screen card">
+          <h2>Reconectando...</h2>
+          <p>Tentando retomar sua sessão anterior.</p>
+          <div class="loader"></div>
+          <button class="action disabled" (click)="cancelReconnect()">Cancelar</button>
         </div>
       }
 
@@ -181,7 +189,13 @@ export class LobbyComponent implements OnInit {
     }
     localStorage.setItem('gs_player_name', this.playerName);
 
-    const sId = this.sessionId || crypto.randomUUID();
+    const sId = this.sessionId || (
+      typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
+            (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+          )
+    );
     this.sessionService.setSessionId(sId);
     
     this.webSocketService.connect();
@@ -191,6 +205,11 @@ export class LobbyComponent implements OnInit {
   }
 
   cancel(): void {
+    this.gameStateService.setLobby();
+    this.webSocketService.disconnect();
+  }
+
+  cancelReconnect(): void {
     this.gameStateService.setLobby();
     this.webSocketService.disconnect();
   }
